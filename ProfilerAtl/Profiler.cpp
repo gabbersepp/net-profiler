@@ -14,9 +14,15 @@ const wchar_t* LogFileName = L"Profiler.log";
 CComQIPtr<ICorProfilerInfo2> iCorProfilerInfo;
 CProfiler* iCorProfilerCallback = NULL;
 
+
+int const bucketSize = 5000;
+unsigned int* functionMap = new unsigned int[bucketSize];
+unsigned int* fnMapPtr = functionMap;
+
 CProfiler::CProfiler() 
 {
 	hLogFile = INVALID_HANDLE_VALUE;
+	memset(functionMap, 0, bucketSize);
 }
 
 HRESULT CProfiler::FinalConstruct()
@@ -62,8 +68,25 @@ void __stdcall FunctionEnterGlobal(FunctionID functionID) {
 	metadata->Release();
 }
 
+
 void __declspec(naked) FunctionLeaveNaked(FunctionID funcId, UINT_PTR clientData, COR_PRF_FRAME_INFO func, COR_PRF_FUNCTION_ARGUMENT_INFO* argumentInfo) {
 	__asm {
+		push ebp
+		push EAX
+		push EDX
+
+		lea ebp, functionMap
+		mov eax, funcId
+		xor edx, edx
+		div bucketSize
+		// remainder in edx
+		mov eax, edx
+		add eax, fnMapPtr
+		dec [eax]
+
+		pop edx
+		pop eax
+		pop ebp
 		ret 16
 	}
 }
@@ -73,19 +96,61 @@ void __declspec(naked) FunctionTailcallNaked(FunctionID funcId, UINT_PTR clientD
 	}
 }
 
+void __stdcall FunctionEnterCriticalLevel(FunctionID  funcId, unsigned int amount) {
+	cout << "function reaches critical level";
+	cout << amount;
+}
+
 void __declspec(naked) FunctionEnterNaked(FunctionID funcId, UINT_PTR clientData, COR_PRF_FRAME_INFO func, COR_PRF_FUNCTION_ARGUMENT_INFO* argumentInfo) {
 	__asm {
 		push ebp
-		mov ebp, esp
-
-		mov EAX, [ebp + 8];
 		push EAX
-		call FunctionEnterGlobal
+		push EDX
 
+		mov ebp, esp
+		mov eax, [ebp + 8]
+		lea ebp, functionMap
+		xor edx, edx
+		div bucketSize
+		// remainder in edx
+		mov eax, edx
+		add eax, fnMapPtr
+		inc[eax]
+
+
+		cmp [eax], 300
+		// compare
+		cmp dword ptr [eax], 300
+		jbe ignore
+
+		push [eax]
+		mov ebp, esp
+		mov eax, [ebp + 8]
+		push eax
+		call FunctionEnterCriticalLevel
+
+		ignore:
+
+		pop edx
+		pop eax
 		pop ebp
 		ret 16
 	}
 }
+
+
+
+/*FunctionEnterNaked: __asm {
+	push ebp
+	mov ebp, esp
+
+	mov EAX, [ebp + 8];
+	push EAX
+	call FunctionEnterGlobal
+
+	pop ebp
+	ret 16
+}*/
 
 HRESULT __stdcall CProfiler::Initialize(IUnknown *pICorProfilerInfoUnk)
 {

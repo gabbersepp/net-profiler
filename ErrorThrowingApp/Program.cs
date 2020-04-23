@@ -10,10 +10,18 @@ namespace ErrorThrowingApp
             while (true)
             {
                 Console.WriteLine("\r\n------------------\r\nFrom App: Press any key or 'a' to exit");
-                if (Console.ReadKey().KeyChar == 'a')
+                var chr = Console.ReadKey().KeyChar;
+                if (chr == 'a')
                 {
                     break;
                 }
+
+                if (chr == 'R')
+                {
+                    Console.WriteLine("recursive");
+                    Recursive();
+                }
+
                 Console.Write("\r\n");
                 new Test().TestFn();
 
@@ -24,6 +32,11 @@ namespace ErrorThrowingApp
                 catch { }
                 Console.ReadKey();
             }
+        }
+
+        static void Recursive()
+        {
+            Recursive();
         }
     }
 
