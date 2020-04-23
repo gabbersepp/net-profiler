@@ -30,6 +30,63 @@ void CProfiler::FinalRelease()
 	CloseLogFile();
 }
 
+void __stdcall FunctionEnterGlobal(FunctionID functionID) {
+	iCorProfilerCallback->LogLine("\r\nentered\r\n");
+	mdToken mdToken = 0;
+	IMetaDataImport* metadata = 0;
+	HRESULT hr = iCorProfilerInfo->GetTokenAndMetaDataFromFunction(functionID, IID_IMetaDataImport, (LPUNKNOWN*)&metadata, &mdToken);
+	if (FAILED(hr)) {
+		return;
+	}
+
+	mdTypeDef typeDefToken = 0;
+	wchar_t functionName[1000];
+	ULONG outWideChar = 0;
+	DWORD attr = 0;
+	PCCOR_SIGNATURE sigBlob = NULL;
+	ULONG sigBlobBytesCount = NULL;
+
+	hr = metadata->GetMethodProps(mdToken,
+		&typeDefToken, functionName,
+		1000, &outWideChar,
+		NULL, &sigBlob, &sigBlobBytesCount, NULL, NULL);
+
+	if (FAILED(hr)) {
+		return;
+	}
+
+	char* cFuncName = new char[1000];
+	memset(cFuncName, 0, 1000);
+	wcstombs(cFuncName, functionName, 1000);
+	iCorProfilerCallback->Log("Function called: %s\r\n", cFuncName);
+	metadata->Release();
+}
+
+void __declspec(naked) FunctionLeaveNaked(FunctionID funcId, UINT_PTR clientData, COR_PRF_FRAME_INFO func, COR_PRF_FUNCTION_ARGUMENT_INFO* argumentInfo) {
+	__asm {
+		ret 16
+	}
+}
+void __declspec(naked) FunctionTailcallNaked(FunctionID funcId, UINT_PTR clientData, COR_PRF_FRAME_INFO func) {
+	__asm {
+		ret 12
+	}
+}
+
+void __declspec(naked) FunctionEnterNaked(FunctionID funcId, UINT_PTR clientData, COR_PRF_FRAME_INFO func, COR_PRF_FUNCTION_ARGUMENT_INFO* argumentInfo) {
+	__asm {
+		push ebp
+		mov ebp, esp
+
+		mov EAX, [ebp + 8];
+		push EAX
+		call FunctionEnterGlobal
+
+		pop ebp
+		ret 16
+	}
+}
+
 HRESULT __stdcall CProfiler::Initialize(IUnknown *pICorProfilerInfoUnk)
 {
 	iCorProfilerCallback = this;
@@ -46,8 +103,11 @@ HRESULT __stdcall CProfiler::Initialize(IUnknown *pICorProfilerInfoUnk)
 		LogLine("Error setting event mask");
 	}
 
+	iCorProfilerInfo->SetEnterLeaveFunctionHooks2((FunctionEnter2*)&FunctionEnterNaked, (FunctionLeave2*)&FunctionLeaveNaked, (FunctionTailcall2*)&FunctionTailcallNaked);
+
     return S_OK;
 }
+
 
 HRESULT __stdcall CProfiler::Shutdown()
 {
@@ -71,33 +131,24 @@ void CProfiler::CloseLogFile()
 	}
 }
 
-void CProfiler::LogLine(wchar_t* pMsg, ...) {
-	va_list args;
-	va_start(args, pMsg);
-	Log(pMsg, args);
+void CProfiler::LogLine(wchar_t* pMsg) {
+	Log(pMsg);
 	Log("\r\n");
-	va_end(args);
 }
 
-void CProfiler::LogLine(char* pMsg, ...) {
-	va_list args;
-	va_start(args, pMsg);
-	Log(pMsg, args);
+void CProfiler::LogLine(char* pMsg) {
+	Log(pMsg);
 	Log("\r\n");
-	va_end(args);
 }
 
-void CProfiler::Log(wchar_t* pMsg, ...)
+void CProfiler::Log(wchar_t* pMsg)
 {
 	size_t size = wcslen(pMsg) + 1;
 	size_t converted = 0;
 	char* dest = new char[size];
 	wcstombs_s(&converted, dest, size, pMsg, size);
 
-	va_list args;
-	va_start(args, pMsg);
-	Log(dest, args);
-	va_end(args);
+	Log(dest);
 }
 
 void CProfiler::Log(char *pMsg, ...)
@@ -117,7 +168,7 @@ void CProfiler::Log(char *pMsg, ...)
 
 HRESULT CProfiler::SetEventMask()
 {
-	DWORD eventMask = (DWORD)(COR_PRF_MONITOR_OBJECT_ALLOCATED | COR_PRF_ENABLE_OBJECT_ALLOCATED | COR_PRF_ENABLE_STACK_SNAPSHOT | COR_PRF_MONITOR_EXCEPTIONS);
+	DWORD eventMask = (DWORD)(COR_PRF_MONITOR_ENTERLEAVE | COR_PRF_MONITOR_OBJECT_ALLOCATED | COR_PRF_ENABLE_OBJECT_ALLOCATED | COR_PRF_ENABLE_STACK_SNAPSHOT | COR_PRF_MONITOR_EXCEPTIONS);
 	return iCorProfilerInfo->SetEventMask(eventMask);
 }
 

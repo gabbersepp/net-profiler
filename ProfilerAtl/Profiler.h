@@ -25,6 +25,7 @@ public:
     STDMETHOD(Initialize)(IUnknown *pICorProfilerInfoUnk);
     STDMETHOD(Shutdown)();
 
+
 	HRESULT __stdcall ObjectAllocated(ObjectID objectID, ClassID classID);
 	HRESULT __stdcall ExceptionThrown(ObjectID thrownObjectID);
 	HRESULT __stdcall ExceptionCatcherEnter(FunctionID functionID, ObjectID objectID);
@@ -36,9 +37,9 @@ public:
 		BYTE context[],
 		void* clientData);
 
-    void LogLine(char* pszFmtString, ... );
-	void LogLine(wchar_t* pMsg, ...);
-	void Log(wchar_t* pMsg, ...);
+    void LogLine(char* pszFmtString );
+	void LogLine(wchar_t* pMsg);
+	void Log(wchar_t* pMsg);
 	void Log(char* pMsg, ...);
 
 private:
