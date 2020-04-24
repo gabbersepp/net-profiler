@@ -1,0 +1,14 @@
+﻿<Window x:Class="NetProfiler.FileMenu.AttachToProcess"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NetProfiler.FileMenu"
+        mc:Ignorable="d"
+        Title="Attach to Process" Height="210" Width="150" ResizeMode="NoResize" WindowStyle="ToolWindow">
+    <StackPanel>
+        <Label Width="100" Margin="10">Process ID:</Label>
+        <TextBox Width="100" Margin="10" Name="ProcessId"></TextBox>
+        <Button Width="100" Margin="10" Name="Ok" Click="Ok_OnClick">OK</Button>
+    </StackPanel>
+</Window>

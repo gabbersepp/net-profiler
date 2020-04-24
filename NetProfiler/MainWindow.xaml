@@ -6,7 +6,18 @@
         xmlns:local="clr-namespace:NetProfiler"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Attach to Process" Name="AttachToProcess" Click="AttachToProcess_OnClick" />
+                <MenuItem Header="_Start new Process" Name="StartNewProcess" Click="StartNewProcess_OnClick"/>
+                <MenuItem Header="_Configure Profiler" Name="ConfigureProfilerMenuItem" Click="ConfigureProfilerMenuItem_OnClick"></MenuItem>
+                <MenuItem Header="Stop Debugging" Name="StopDebugging" Click="StopDebugging_OnClick" IsEnabled="False"></MenuItem>
+            </MenuItem>
+        </Menu>
+        <StackPanel DockPanel.Dock="Bottom" Background="Aqua">
+
+        </StackPanel>
+    </DockPanel>
+
 </Window>

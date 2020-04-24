@@ -1,0 +1,16 @@
+﻿<Window x:Class="NetProfiler.FileMenu.ConfigureProfiler"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NetProfiler.FileMenu"
+        mc:Ignorable="d"
+        Title="Configure Profiler" Height="200" Width="400">
+    <StackPanel>
+        <Label Margin="10">Profiler ID:</Label>
+        <TextBox Margin="10" Name="ProfilerId" Text="{Binding ProfilerId}"></TextBox>
+        <Button Margin="10" Name="SelectProfilerDllButton" Click="SelectProfilerDllButton_OnClick">Select Profiler DLL</Button>
+        <Label Margin="10" Name="FilePath" Content="{Binding ProfilerDll}"></Label>
+        <Button Margin="10" Name="Ok" Click="Ok_OnClick">OK</Button>
+    </StackPanel>
+</Window>
