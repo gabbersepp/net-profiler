@@ -117,8 +117,6 @@ void __declspec(naked) FunctionEnterNaked(FunctionID funcId, UINT_PTR clientData
 		add eax, fnMapPtr
 		inc[eax]
 
-
-		cmp [eax], 300
 		// compare
 		cmp dword ptr [eax], 300
 		jbe ignore
