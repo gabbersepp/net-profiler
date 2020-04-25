@@ -32,10 +32,16 @@ void EventLogger::Finalize() {
 }
 
 long EventLogger::Initialize() {
-	fileHandle = CreateFileW(TEXT("\\\\.\\pipe\\netprofiler"), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	fileHandle = CreateFileW(TEXT("\\\\.\\pipe\\netprofiler"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if (GetLastError() != 0) {
 		return GetLastError();
 	}
+
+	char* buffer = new char[1000];
+	memset(buffer, 0, 1000);
+	unsigned long read = 0;
+	ReadFile(fileHandle, buffer, 1000, &read, NULL);
+	std::cout << "\r\nconfig\r\n\t" << buffer;
 
 	return TRUE;
 }

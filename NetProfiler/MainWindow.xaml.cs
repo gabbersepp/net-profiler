@@ -35,7 +35,6 @@ namespace NetProfiler
             config = ConfigurationManager.ReadConfig() ?? new Config();
             DataContext = this;
             this.Closed += (sender, args) => process?.Kill();
-            communicationService = new CommunicationService(this);
             InitializeComponent();
         }
 
@@ -55,6 +54,7 @@ namespace NetProfiler
         {
             if (new StartNewProcess(config).ShowDialog() == true)
             {
+                communicationService = new CommunicationService(this);
                 ConfigurationManager.WriteConfig(config);
                 StopDebugging.IsEnabled = true;
                 AttachToProcess.IsEnabled = false;
@@ -85,6 +85,7 @@ namespace NetProfiler
             StopDebugging.IsEnabled = false;
             AttachToProcess.IsEnabled = true;
             StartNewProcess.IsEnabled = true;
+            communicationService.Dispose();
         }
 
         public void Error(Exception e, string additionalInfos = null)

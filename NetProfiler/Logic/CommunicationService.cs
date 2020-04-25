@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -8,7 +10,7 @@ using System.Windows.Threading;
 
 namespace NetProfiler.Logic
 {
-    public class CommunicationService
+    public class CommunicationService : IDisposable
     {
         private readonly IMessageReceiver receiver;
         private NamedPipeServerStream namedPipeServer;
@@ -20,10 +22,21 @@ namespace NetProfiler.Logic
         public CommunicationService(IMessageReceiver receiver)
         {
             this.receiver = receiver;
-            namedPipeServer = new NamedPipeServerStream("netprofiler", PipeDirection.In, 20, PipeTransmissionMode.Message);
+            namedPipeServer = new NamedPipeServerStream("netprofiler", PipeDirection.InOut, 20, PipeTransmissionMode.Message);
             streamReader = new StreamReader(namedPipeServer);
             //streamWriter = new StreamWriter(namedPipeServer);
             readTask = Task.Run(TaskAction, cancellationTokenSource.Token);
+        }
+
+        private void WriteConfig()
+        {
+            var sw = new StreamWriter(namedPipeServer);
+            var str = "test hans wurst";
+            sw.Write(str + Enumerable.Range(0, 1000 - str.Length).Select(x => '\0').Aggregate(string.Empty, (x, y) => y + x));
+            sw.Flush();
+
+            // if the length here does not fit the length at the other side, this line is waiting forever!
+            namedPipeServer.WaitForPipeDrain();
         }
 
         private void TaskAction()
@@ -31,6 +44,7 @@ namespace NetProfiler.Logic
             try
             {
                 namedPipeServer.WaitForConnection();
+                WriteConfig();
 
                 // reradline == null -> error /disconnect
                 while (!cancellationTokenSource.IsCancellationRequested)
@@ -50,7 +64,7 @@ namespace NetProfiler.Logic
             }
         }
 
-        ~CommunicationService()
+        public void Dispose()
         {
             cancellationTokenSource.Cancel();
             namedPipeServer.Close();
