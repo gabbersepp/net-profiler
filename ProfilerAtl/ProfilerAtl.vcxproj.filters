@@ -73,6 +73,9 @@
     <ClInclude Include="EventLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ProfilerConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ProfilerAtl.rc">

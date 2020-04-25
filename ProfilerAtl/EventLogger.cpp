@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "EventLogger.h";
 #include <iostream>;
+#include "ProfilerConfig.h";
+#include <cstring>;
 
 long EventLogger::ProcessEvent(char * input, unsigned long inputSize, char * output, unsigned long outputSize, unsigned long * read) {
 	long size = strlen(input);
@@ -31,17 +33,52 @@ void EventLogger::Finalize() {
 	CloseHandle(fileHandle);
 }
 
-long EventLogger::Initialize() {
+ProfilerConfig* EventLogger::Initialize(unsigned long * error) {
 	fileHandle = CreateFileW(TEXT("\\\\.\\pipe\\netprofiler"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if (GetLastError() != 0) {
-		return GetLastError();
+		*error = GetLastError();
+		return nullptr;
 	}
 
 	char* buffer = new char[1000];
 	memset(buffer, 0, 1000);
 	unsigned long read = 0;
 	ReadFile(fileHandle, buffer, 1000, &read, NULL);
+
 	std::cout << "\r\nconfig\r\n\t" << buffer;
 
-	return TRUE;
+	ProfilerConfig* result = ParseConfig(&buffer);
+	//delete[] buffer;
+	return result;
 }
+
+unsigned int ReadInt(char** line) {
+	char* occurence = strchr(*line, ';');
+
+	if (occurence == nullptr) {
+		return -1;
+	}
+
+	char* inputBuffer = new char[30];
+	memset(inputBuffer, 0, 30);
+	//std::cout << (unsigned long)occurence << "----" << (unsigned long)*line;
+	//return 0;
+	strncpy(inputBuffer, *line, occurence - *line);
+	unsigned int value = std::atoi(inputBuffer);
+	delete[] inputBuffer;
+	*line = occurence + 1;
+	return value;
+}
+
+ProfilerConfig* EventLogger::ParseConfig(char** line) {
+	ProfilerConfig* config = new ProfilerConfig();
+	char* copy = *line;
+
+	config->ProfilerOptions = static_cast<ProfilerOptions>(ReadInt(line));
+	config->ManagedThreadId = ReadInt(line);
+	config->StackCriticalLevelThreshold = ReadInt(line);
+
+	*line = copy;
+	return config;
+}
+

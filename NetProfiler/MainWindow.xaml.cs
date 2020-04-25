@@ -54,7 +54,7 @@ namespace NetProfiler
         {
             if (new StartNewProcess(config).ShowDialog() == true)
             {
-                communicationService = new CommunicationService(this);
+                communicationService = new CommunicationService(this, new ProfilerConfig{ManagedThreadId = 123, ProfilerOptions = ProfilerOptions.Exceptions | ProfilerOptions.FunctionEnter, StackCriticalLevelThreshold = 11});
                 ConfigurationManager.WriteConfig(config);
                 StopDebugging.IsEnabled = true;
                 AttachToProcess.IsEnabled = false;

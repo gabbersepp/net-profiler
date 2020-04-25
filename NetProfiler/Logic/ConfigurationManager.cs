@@ -1,8 +1,6 @@
 ﻿using System.IO;
 using System.Text;
 using NetProfiler.Contracts;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace NetProfiler.Logic
 {
@@ -10,7 +8,7 @@ namespace NetProfiler.Logic
     {
         public static void WriteConfig(Config config)
         {
-            var json = JsonSerializer.Serialize(config);
+            var json = JsonHelper.Serialize(config);
             File.WriteAllText("./config.json", json, Encoding.UTF8);
         }
 
@@ -18,7 +16,7 @@ namespace NetProfiler.Logic
         {
             if (File.Exists("./config.json"))
             {
-                return JsonSerializer.Deserialize<Config>(File.ReadAllText("./config.json"));
+                return JsonHelper.Deserialize<Config>(File.ReadAllText("./config.json"));
             }
 
             return null;

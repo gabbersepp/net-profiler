@@ -105,6 +105,8 @@
     </Compile>
     <Compile Include="Contracts\Config.cs" />
     <Compile Include="Contracts\DebugMode.cs" />
+    <Compile Include="Contracts\ProfilerConfig.cs" />
+    <Compile Include="Contracts\ProfilerOptions.cs" />
     <Compile Include="FileMenu\AttachToProcess.xaml.cs">
       <DependentUpon>AttachToProcess.xaml</DependentUpon>
     </Compile>
@@ -117,6 +119,7 @@
     <Compile Include="Logic\CommunicationService.cs" />
     <Compile Include="Logic\ConfigurationManager.cs" />
     <Compile Include="Logic\IMessageReceiver.cs" />
+    <Compile Include="Logic\JsonHelper.cs" />
     <Compile Include="Logic\ProcessHelper.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

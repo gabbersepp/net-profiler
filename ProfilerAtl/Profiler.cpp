@@ -7,6 +7,7 @@
 #include <string>;
 #include <vector>;
 #include <windows.h>;
+#include "ProfilerConfig.h";
 
 using namespace std;
 
@@ -23,10 +24,13 @@ CProfiler::CProfiler()
 {
 	hLogFile = INVALID_HANDLE_VALUE;
 	eventLogger = new EventLogger();
-	long result = eventLogger->Initialize();
-	if (result != TRUE) {
+	unsigned long error = 0;
+	ProfilerConfig* result = eventLogger->Initialize(&error);
+
+	if (error != 0) {
 		cout << "\r\nerror\r\n" << result;
 	}
+	cout << "config: " << result->ProfilerOptions << ";" << result->ManagedThreadId << ";" << result->StackCriticalLevelThreshold << "\r\n";
 	memset(functionMap, 0, bucketSize);
 }
 

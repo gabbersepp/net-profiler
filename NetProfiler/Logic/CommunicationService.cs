@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using NetProfiler.Contracts;
 
 namespace NetProfiler.Logic
 {
@@ -19,19 +20,21 @@ namespace NetProfiler.Logic
         private StreamReader streamReader;
         private StreamWriter streamWriter;
 
-        public CommunicationService(IMessageReceiver receiver)
+        public CommunicationService(IMessageReceiver receiver, ProfilerConfig profilerConfig)
         {
             this.receiver = receiver;
             namedPipeServer = new NamedPipeServerStream("netprofiler", PipeDirection.InOut, 20, PipeTransmissionMode.Message);
             streamReader = new StreamReader(namedPipeServer);
             //streamWriter = new StreamWriter(namedPipeServer);
-            readTask = Task.Run(TaskAction, cancellationTokenSource.Token);
+            readTask = Task.Run(() => TaskAction(profilerConfig), cancellationTokenSource.Token);
         }
 
-        private void WriteConfig()
+        private void WriteConfig(ProfilerConfig profilerConfig)
         {
             var sw = new StreamWriter(namedPipeServer);
-            var str = "test hans wurst";
+            var str = $"{(int)profilerConfig.ProfilerOptions};{profilerConfig.ManagedThreadId};{profilerConfig.StackCriticalLevelThreshold}";
+            str = str + ";";
+            // the other side expects exactly 1000 characters :-) 
             sw.Write(str + Enumerable.Range(0, 1000 - str.Length).Select(x => '\0').Aggregate(string.Empty, (x, y) => y + x));
             sw.Flush();
 
@@ -39,12 +42,12 @@ namespace NetProfiler.Logic
             namedPipeServer.WaitForPipeDrain();
         }
 
-        private void TaskAction()
+        private void TaskAction(ProfilerConfig profilerConfig)
         {
             try
             {
                 namedPipeServer.WaitForConnection();
-                WriteConfig();
+                WriteConfig(profilerConfig);
 
                 // reradline == null -> error /disconnect
                 while (!cancellationTokenSource.IsCancellationRequested)
