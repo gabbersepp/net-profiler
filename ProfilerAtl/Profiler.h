@@ -3,6 +3,7 @@
 #include "resource.h"
 #include "ProfilerAtl.h"
 #include "CorProfilerCallbackDefaultImpl.h"
+#include "EventLogger.h";
 
 class ATL_NO_VTABLE CProfiler :
 	public CComObjectRootEx<CComSingleThreadModel>,
@@ -45,6 +46,7 @@ public:
 private:
 
 	HANDLE hLogFile;
+	EventLogger* eventLogger;
 
 	HRESULT SetEventMask();
 	void CreateLogFile();

@@ -9,7 +9,7 @@ namespace ErrorThrowingApp
             
             while (true)
             {
-                Console.WriteLine("\r\n------------------\r\nFrom App: Press any key or 'a' to exit");
+                Console.WriteLine($"\r\n64Bit: {Environment.Is64BitProcess}\r\n------------------\r\nFrom App: Press any key or 'a' to exit");
                 var chr = Console.ReadKey().KeyChar;
                 if (chr == 'a')
                 {

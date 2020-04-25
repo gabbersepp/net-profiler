@@ -114,7 +114,9 @@
     <Compile Include="FileMenu\StartNewProcess.xaml.cs">
       <DependentUpon>StartNewProcess.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Logic\CommunicationService.cs" />
     <Compile Include="Logic\ConfigurationManager.cs" />
+    <Compile Include="Logic\IMessageReceiver.cs" />
     <Compile Include="Logic\ProcessHelper.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

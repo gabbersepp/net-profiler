@@ -22,6 +22,11 @@ unsigned int* fnMapPtr = functionMap;
 CProfiler::CProfiler() 
 {
 	hLogFile = INVALID_HANDLE_VALUE;
+	eventLogger = new EventLogger();
+	long result = eventLogger->Initialize();
+	if (result != TRUE) {
+		cout << "\r\nerror\r\n" << result;
+	}
 	memset(functionMap, 0, bucketSize);
 }
 
@@ -33,6 +38,9 @@ HRESULT CProfiler::FinalConstruct()
 
 void CProfiler::FinalRelease()
 {
+
+	eventLogger->Finalize();
+	delete eventLogger;
 	CloseLogFile();
 }
 
@@ -68,7 +76,7 @@ void __stdcall FunctionEnterGlobal(FunctionID functionID) {
 	metadata->Release();
 }
 
-
+#ifdef _X86_
 void __declspec(naked) FunctionLeaveNaked(FunctionID funcId, UINT_PTR clientData, COR_PRF_FRAME_INFO func, COR_PRF_FUNCTION_ARGUMENT_INFO* argumentInfo) {
 	__asm {
 		push ebp
@@ -118,7 +126,7 @@ void __declspec(naked) FunctionEnterNaked(FunctionID funcId, UINT_PTR clientData
 		inc[eax]
 
 		// compare
-		cmp dword ptr [eax], 300
+		cmp dword ptr [eax], 5
 		jbe ignore
 
 		push [eax]
@@ -135,7 +143,9 @@ void __declspec(naked) FunctionEnterNaked(FunctionID funcId, UINT_PTR clientData
 		ret 16
 	}
 }
+#elif defined(_AMD64_)
 
+#endif
 
 
 /*FunctionEnterNaked: __asm {
@@ -216,6 +226,18 @@ void CProfiler::Log(wchar_t* pMsg)
 
 void CProfiler::Log(char *pMsg, ...)
 {
+	char output[500];
+	memset(output, 0, 500);
+	cout << "log message";
+	cout << pMsg;
+	unsigned long read = 0;
+	long result = eventLogger->ProcessEvent(pMsg, strlen(pMsg), output, 500, &read);
+	if (result != TRUE) {
+		cout << "Error\r\n";
+		cout << result;
+	}
+	cout << read;
+	return;
 	CHAR buffer[4096]; DWORD dwWritten = 0;
 
 	if(hLogFile != INVALID_HANDLE_VALUE)

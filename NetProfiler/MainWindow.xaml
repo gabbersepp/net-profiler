@@ -16,7 +16,7 @@
             </MenuItem>
         </Menu>
         <StackPanel DockPanel.Dock="Bottom" Background="Aqua">
-
+            <TextBlock Name="Test" Width="400" Height="500"></TextBlock>
         </StackPanel>
     </DockPanel>
 

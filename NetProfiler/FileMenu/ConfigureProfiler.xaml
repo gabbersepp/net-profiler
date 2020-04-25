@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NetProfiler.FileMenu"
         mc:Ignorable="d"
-        Title="Configure Profiler" Height="200" Width="400">
+        Title="Configure Profiler" Height="250" Width="400">
     <StackPanel>
         <Label Margin="10">Profiler ID:</Label>
         <TextBox Margin="10" Name="ProfilerId" Text="{Binding ProfilerId}"></TextBox>

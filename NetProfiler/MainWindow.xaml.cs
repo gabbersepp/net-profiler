@@ -22,17 +22,20 @@ namespace NetProfiler
     /// <summary>
     /// Interaktionslogik für MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IMessageReceiver
     {
         Config config;
         public bool DebuggerRunning { get; set; }
-        public DebugMode DebugMode { get; set; }
+        private DebugMode? debugMode { get; set; }
         private Process process;
+        private CommunicationService communicationService;
 
         public MainWindow()
         {
             config = ConfigurationManager.ReadConfig() ?? new Config();
             DataContext = this;
+            this.Closed += (sender, args) => process?.Kill();
+            communicationService = new CommunicationService(this);
             InitializeComponent();
         }
 
@@ -44,7 +47,7 @@ namespace NetProfiler
                 StopDebugging.IsEnabled = true;
                 AttachToProcess.IsEnabled = false;
                 StartNewProcess.IsEnabled = false;
-                DebugMode = DebugMode.Attach;
+                debugMode = DebugMode.Attach;
             }
         }
 
@@ -56,8 +59,16 @@ namespace NetProfiler
                 StopDebugging.IsEnabled = true;
                 AttachToProcess.IsEnabled = false;
                 StartNewProcess.IsEnabled = false;
-                DebugMode = DebugMode.NewProcess;
+                debugMode = DebugMode.NewProcess;
                 process = ProcessHelper.StartNewProcess(config.ProfilerId, config.ProfilerDll, config.FilePath);
+                process.EnableRaisingEvents = true;
+                process.Exited += (o, args) => { Dispatcher.Invoke(() =>
+                {
+                    StopDebugging.IsEnabled = false;
+                    AttachToProcess.IsEnabled = true;
+                    StartNewProcess.IsEnabled = true;
+                    debugMode = null;
+                }); };
             }
         }
 
@@ -74,6 +85,16 @@ namespace NetProfiler
             StopDebugging.IsEnabled = false;
             AttachToProcess.IsEnabled = true;
             StartNewProcess.IsEnabled = true;
+        }
+
+        public void Error(Exception e, string additionalInfos = null)
+        {
+
+        }
+
+        public void Receive(string line)
+        {
+            Test.Text = Test.Text + "\r\n" + line;
         }
     }
 }
