@@ -127,6 +127,7 @@
     <Compile Include="Logic\IMessageReceiver.cs" />
     <Compile Include="Logic\JsonHelper.cs" />
     <Compile Include="Logic\ProcessHelper.cs" />
+    <Compile Include="Logic\SearchLogic.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

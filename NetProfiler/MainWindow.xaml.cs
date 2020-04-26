@@ -32,6 +32,9 @@ namespace NetProfiler
         private Process process;
         private CommunicationService communicationService;
         public BaseViewModel CurrentView { get; set; }
+        private SearchLogic searchLogic = new SearchLogic();
+
+        public string SearchText { get; set; } = string.Empty;
 
         private Dictionary<EventType, BaseViewModel> eventToViewModel = new Dictionary<EventType, BaseViewModel>
         {
@@ -208,6 +211,22 @@ namespace NetProfiler
                     return null;
 
             }
+        }
+
+        private void SearchInEvents_OnClick(object sender, RoutedEventArgs e)
+        {
+            var searchFor = SearchText;
+            var searchIn = CurrentView.Content;
+            var position = searchLogic.FindNextPosition(searchFor, searchIn, CurrentView.GetType());
+            if (position == -1)
+            {
+                MessageBox.Show($"Could not find '{searchFor}'");
+                return;
+            }
+            var linePosition = searchLogic.GetLineOf(searchIn, position);
+            Enumerable.Range(0, linePosition - CurrentView.LastScrolledLine).ToList().ForEach(x => ScrollViewer.LineDown());
+            
+            CurrentView.LastScrolledLine = linePosition;
         }
     }
 }

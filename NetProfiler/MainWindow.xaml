@@ -9,13 +9,17 @@
         Title="MainWindow" Height="450" Width="800">
     <Window.Resources>
         <DataTemplate DataType="{x:Type eventViewModels:FunctionEnterViewModel}">
-            <TextBlock Text="{Binding Content}" />
+            <DockPanel>
+                <TextBlock Text="{Binding Content}" />
+            </DockPanel>
         </DataTemplate>
         <DataTemplate DataType="{x:Type eventViewModels:ExceptionViewModel}">
             <TextBlock Text="{Binding Content}" />
         </DataTemplate>
         <DataTemplate DataType="{x:Type eventViewModels:ObjectAllocatedViewModel}">
-            <TextBlock Text="{Binding Content}" />
+            <DockPanel>
+                <TextBlock Text="{Binding Content}" />
+            </DockPanel>
         </DataTemplate>
         <DataTemplate DataType="{x:Type eventViewModels:ProfilerInfoViewModel}">
             <TextBlock Text="{Binding Content}" />
@@ -55,8 +59,19 @@
                     </TreeViewItem>
                 </TreeViewItem>
             </TreeView>
-            <ContentControl Content="{Binding CurrentView}" Grid.Column="1">
-            </ContentControl>
+            <DockPanel Grid.Column="1">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+                    <Label>Search:</Label>
+                    <TextBox Text="{Binding SearchText}" Width="300"></TextBox>
+                    <Button Click="SearchInEvents_OnClick">Search</Button>
+                </StackPanel>
+                <ScrollViewer DockPanel.Dock="Bottom" Name="ScrollViewer">
+                    <ContentControl Content="{Binding CurrentView}" Name="MainContent">
+                    </ContentControl>
+                </ScrollViewer>
+            </DockPanel>
+
+
 
         </Grid>
     </DockPanel>

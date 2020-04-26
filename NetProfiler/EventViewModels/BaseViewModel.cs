@@ -14,5 +14,6 @@ namespace NetProfiler.EventViewModels
         public event PropertyChangedEventHandler PropertyChanged;
 
         public string Content { get; set; } = string.Empty;
+        public int LastScrolledLine { get; set; }
     }
 }
