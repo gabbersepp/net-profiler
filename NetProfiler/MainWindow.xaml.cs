@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using NetProfiler.Contracts;
+using NetProfiler.EventViewModels;
 using NetProfiler.FileMenu;
 using NetProfiler.Logic;
 
@@ -22,13 +24,31 @@ namespace NetProfiler
     /// <summary>
     /// Interaktionslogik für MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window, IMessageReceiver
+    public partial class MainWindow : Window, IMessageReceiver, INotifyPropertyChanged
     {
         Config config;
         public bool DebuggerRunning { get; set; }
         private DebugMode? debugMode { get; set; }
         private Process process;
         private CommunicationService communicationService;
+        public BaseViewModel CurrentView { get; set; }
+
+        private Dictionary<EventType, BaseViewModel> eventToViewModel = new Dictionary<EventType, BaseViewModel>
+        {
+            {EventType.Info, new ProfilerInfoViewModel()},
+            {EventType.Exception, new ExceptionViewModel()},
+            {EventType.FunctionEnter, new FunctionEnterViewModel()},
+            {EventType.ObjectAllocated, new ObjectAllocatedViewModel() }
+        };
+
+        protected void RaisePropertyChanged(string propertyName)
+        {
+            PropertyChangedEventHandler handler = PropertyChanged;
+            if (handler != null)
+                handler(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public MainWindow()
         {
@@ -50,11 +70,53 @@ namespace NetProfiler
             }
         }
 
+        private ProfilerConfig GetProfilerConfig()
+        {
+            ProfilerOptions opts = ProfilerOptions.Default;
+            if (config.StackCriticalLevel)
+            {
+                opts |= ProfilerOptions.StackCriticalLevel;
+            }
+
+            if (config.NotifyExceptions)
+            {
+                opts |= ProfilerOptions.Exceptions;
+            }
+
+            if (config.NotifyFunctionEnter)
+            {
+                opts |= ProfilerOptions.FunctionEnter;
+            }
+
+            if (config.NotifyFunctionLeave)
+            {
+                opts |= ProfilerOptions.FunctionLeave;
+            }
+
+            if (config.NotifyObjectAllocated)
+            {
+                opts |= ProfilerOptions.ObjectAllocated;
+            }
+
+            if (config.LogInfo)
+            {
+                opts |= ProfilerOptions.Info;
+            }
+
+            return new ProfilerConfig
+            {
+                ManagedThreadId = 0,
+                StackCriticalLevelThreshold = uint.Parse(config.CriticalStackDepth ?? "0"),
+                ProfilerOptions = opts
+            };
+        }
+
         private void StartNewProcess_OnClick(object sender, RoutedEventArgs e)
         {
             if (new StartNewProcess(config).ShowDialog() == true)
             {
-                communicationService = new CommunicationService(this, new ProfilerConfig{ManagedThreadId = 123, ProfilerOptions = ProfilerOptions.Exceptions | ProfilerOptions.FunctionEnter, StackCriticalLevelThreshold = 11});
+
+                communicationService = new CommunicationService(this, GetProfilerConfig());
                 ConfigurationManager.WriteConfig(config);
                 StopDebugging.IsEnabled = true;
                 AttachToProcess.IsEnabled = false;
@@ -95,7 +157,57 @@ namespace NetProfiler
 
         public void Receive(string line)
         {
-            Test.Text = Test.Text + "\r\n" + line;
+            line.Split('#').Select(x => x.Trim())
+                .Where(x => x != string.Empty).Select(x =>
+                {
+                    var type = (EventType)x[0];
+                    return new { type, msg = x.Substring(1)};
+                }).GroupBy(x => x.type)
+                .ToList().ForEach(x =>
+                {
+                    if (eventToViewModel.TryGetValue(x.Key, out var viewModel))
+                    {
+                        viewModel.Content += "\r\n" + string.Join("\r\n", x.Select(y => y.msg));
+                    }
+                });
+        }
+
+        private void EventCategories_OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            TreeViewItem item = e.NewValue as TreeViewItem;
+            if (item == null)
+            {
+                return;
+            }
+
+            var eventType = GetEventType(item.Name);
+
+            if (eventType == null || !eventToViewModel.TryGetValue(eventType.Value, out var viewModel))
+            {
+                MessageBox.Show($"treeview item {item.Name} not mapped to viewmodel");
+                return;
+            }
+
+            CurrentView = viewModel;
+            RaisePropertyChanged("CurrentView");
+        }
+
+        private EventType? GetEventType(string treeViewItemName)
+        {
+            switch (treeViewItemName)
+            {
+                case "FunctionEnterCategory":
+                    return EventType.FunctionEnter;
+                case "ExceptionsCategory":
+                    return EventType.Exception;
+                case "ProfilerInfoLogging":
+                    return EventType.Info;
+                case "ObjectAllocationsCategory":
+                    return EventType.ObjectAllocated;
+                default:
+                    return null;
+
+            }
         }
     }
 }

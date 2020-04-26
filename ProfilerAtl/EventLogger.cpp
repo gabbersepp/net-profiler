@@ -5,31 +5,51 @@
 #include "ProfilerConfig.h";
 #include <cstring>;
 
-long EventLogger::ProcessEvent(char * input, unsigned long inputSize, char * output, unsigned long outputSize, unsigned long * read) {
-	long size = strlen(input);
+const char* newLine = "\r\n";
+
+char* EventLogger::GetFormattedLine(EventType eventType, char* input, unsigned long size) {
 	char* newInput = new char[size + 3];
-	strcpy(newInput, input);
-	newInput[size] = '\r';
-	newInput[size + 1] = '\n';
+	newInput[0] = (short)eventType; // must be interpreted as integer!
+	strcpy(newInput + 1, input);
+	newInput[size + 1] = '#';
 	newInput[size + 2] = 0;
-	std::cout << "\r\nmsg:\r\n\t" << newInput;
-	/*BOOL result = CallNamedPipeA("\\\\.\\pipe\\netprofiler", newInput, inputSize + 2, output, outputSize, read, 5000);
-	if (result == FALSE) {
-		return HRESULT_FROM_WIN32(GetLastError());
-	}*/
+	return newInput;
+}
 
-	BOOL result = WriteFile(fileHandle, newInput, size + 2, read, NULL);
+long EventLogger::Flush() {
+	unsigned long read = 0;
 
-	if (result == FALSE) {
-		return HRESULT_FROM_WIN32(GetLastError());
+	for (int i = 0; i < eventBufferIndex; i++) {
+		char* pData = eventBuffer[i];
+		BOOL result = WriteFile(fileHandle, pData, strlen(pData), &read, NULL);
+		if (result == FALSE) {
+			return HRESULT_FROM_WIN32(GetLastError());
+		}
+		delete[] pData;
 	}
+	
+	WriteFile(fileHandle, newLine, 2, &read, NULL);
 
-	delete[] newInput;
-
+	eventBufferIndex = 0;
 	return TRUE;
 }
 
+void EventLogger::ProcessEvent(EventType eventType, char * input, unsigned long inputSize) {
+	if (eventType == EventType::Info && !logInfo) {
+		return;
+	}
+
+	char* newInput = GetFormattedLine(eventType, input, inputSize);
+	std::cout << newInput << "\r\n";
+	eventBuffer[eventBufferIndex++] = newInput;
+
+	if (eventBufferIndex == maxEventBufferIndex) {
+		Flush();
+	}
+}
+
 void EventLogger::Finalize() {
+	Flush();
 	CloseHandle(fileHandle);
 }
 
@@ -45,10 +65,9 @@ ProfilerConfig* EventLogger::Initialize(unsigned long * error) {
 	unsigned long read = 0;
 	ReadFile(fileHandle, buffer, 1000, &read, NULL);
 
-	std::cout << "\r\nconfig\r\n\t" << buffer;
-
 	ProfilerConfig* result = ParseConfig(&buffer);
-	//delete[] buffer;
+	logInfo = result->ProfilerOptions & ProfilerOptions_Info;
+	delete[] buffer;
 	return result;
 }
 
@@ -61,8 +80,7 @@ unsigned int ReadInt(char** line) {
 
 	char* inputBuffer = new char[30];
 	memset(inputBuffer, 0, 30);
-	//std::cout << (unsigned long)occurence << "----" << (unsigned long)*line;
-	//return 0;
+
 	strncpy(inputBuffer, *line, occurence - *line);
 	unsigned int value = std::atoi(inputBuffer);
 	delete[] inputBuffer;

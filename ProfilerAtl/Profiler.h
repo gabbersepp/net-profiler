@@ -38,16 +38,16 @@ public:
 		BYTE context[],
 		void* clientData);
 
-    void LogLine(char* pszFmtString );
-	void LogLine(wchar_t* pMsg);
-	void Log(wchar_t* pMsg);
-	void Log(char* pMsg, ...);
+	void Log(EventType eventType, wchar_t* pMsg);
+	void Log(EventType eventType, char* pMsg);
 
 private:
 
 	HANDLE hLogFile;
 	EventLogger* eventLogger;
+	ProfilerConfig* profilerConfig;
 
+	bool SetFunctionHooks();
 	HRESULT SetEventMask();
 	void CreateLogFile();
 	void CloseLogFile();

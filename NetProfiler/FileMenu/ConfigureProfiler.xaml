@@ -5,12 +5,34 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NetProfiler.FileMenu"
         mc:Ignorable="d"
-        Title="Configure Profiler" Height="250" Width="400">
+        Title="Configure Profiler" Height="300" Width="400">
     <StackPanel>
         <Label Margin="10">Profiler ID:</Label>
         <TextBox Margin="10" Name="ProfilerId" Text="{Binding ProfilerId}"></TextBox>
         <Button Margin="10" Name="SelectProfilerDllButton" Click="SelectProfilerDllButton_OnClick">Select Profiler DLL</Button>
         <Label Margin="10" Name="FilePath" Content="{Binding ProfilerDll}"></Label>
+        <GroupBox Header="Options">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <CheckBox IsChecked="{Binding NotifyObjectAllocated}"  Grid.Column="0" Grid.Row="0">Notify about object allocated</CheckBox>
+                <CheckBox IsChecked="{Binding NotifyFunctionEnter}" Grid.Column="1" Grid.Row="0">Notify about function enter</CheckBox>
+                <CheckBox IsChecked="{Binding NotifyFunctionLeave}" Grid.Column="0" Grid.Row="1">Notify about function leave</CheckBox>
+                <CheckBox IsChecked="{Binding NotifyExceptions}" Grid.Column="1" Grid.Row="1">Notify about exceptions</CheckBox>
+                <CheckBox IsChecked="{Binding StackCriticalLevel}" Grid.Column="0" Grid.Row="2">Warn critical stack depth</CheckBox>
+                <TextBox Grid.Column="1" Grid.Row="2" IsEnabled="{Binding CriticalStackDepth}">Maximumum Stackdepth</TextBox>
+                <CheckBox IsChecked="{Binding LogInfo}" Grid.Column="0" Grid.Row="3">Log info messages</CheckBox>
+
+            </Grid>
+        </GroupBox>
         <Button Margin="10" Name="Ok" Click="Ok_OnClick">OK</Button>
     </StackPanel>
 </Window>

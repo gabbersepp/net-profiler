@@ -18,21 +18,19 @@ namespace NetProfiler.Logic
         private Task readTask;
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private StreamReader streamReader;
-        private StreamWriter streamWriter;
 
         public CommunicationService(IMessageReceiver receiver, ProfilerConfig profilerConfig)
         {
             this.receiver = receiver;
             namedPipeServer = new NamedPipeServerStream("netprofiler", PipeDirection.InOut, 20, PipeTransmissionMode.Message);
             streamReader = new StreamReader(namedPipeServer);
-            //streamWriter = new StreamWriter(namedPipeServer);
             readTask = Task.Run(() => TaskAction(profilerConfig), cancellationTokenSource.Token);
         }
 
         private void WriteConfig(ProfilerConfig profilerConfig)
         {
             var sw = new StreamWriter(namedPipeServer);
-            var str = $"{(int)profilerConfig.ProfilerOptions};{profilerConfig.ManagedThreadId};{profilerConfig.StackCriticalLevelThreshold}";
+            var str = $"{(int)profilerConfig.ProfilerOptions};{profilerConfig.ManagedThreadId};{profilerConfig.StackCriticalLevelThreshold};";
             str = str + ";";
             // the other side expects exactly 1000 characters :-) 
             sw.Write(str + Enumerable.Range(0, 1000 - str.Length).Select(x => '\0').Aggregate(string.Empty, (x, y) => y + x));
@@ -48,22 +46,17 @@ namespace NetProfiler.Logic
             {
                 namedPipeServer.WaitForConnection();
                 WriteConfig(profilerConfig);
+                string line;
 
-                // reradline == null -> error /disconnect
-                while (!cancellationTokenSource.IsCancellationRequested)
+                while (!cancellationTokenSource.IsCancellationRequested && (line = streamReader.ReadLine()) != null)
                 {
-                    // one line is one object
-                    var line = streamReader.ReadLine();
-                    // thread war blockiert?? evtl zu schnelles senden
-                    Application.Current.Dispatcher.BeginInvoke(new Action(() => receiver.Receive(line)));
-                    //streamWriter.WriteLine("\r\n");
-                    //streamWriter.Flush();
+                    var lineCopy = line;
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() => receiver.Receive(lineCopy)));
                 }
             }
             catch (Exception e)
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action(() => receiver.Error(e)));
-                //Dispatcher.CurrentDispatcher.Invoke(() => { receiver.Error(e); });
             }
         }
 

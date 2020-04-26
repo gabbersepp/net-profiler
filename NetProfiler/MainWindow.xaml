@@ -4,8 +4,24 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NetProfiler"
+        xmlns:eventViewModels="clr-namespace:NetProfiler.EventViewModels"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type eventViewModels:FunctionEnterViewModel}">
+            <TextBlock Text="{Binding Content}" />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type eventViewModels:ExceptionViewModel}">
+            <TextBlock Text="{Binding Content}" />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type eventViewModels:ObjectAllocatedViewModel}">
+            <TextBlock Text="{Binding Content}" />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type eventViewModels:ProfilerInfoViewModel}">
+            <TextBlock Text="{Binding Content}" />
+        </DataTemplate>
+
+    </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
@@ -15,9 +31,34 @@
                 <MenuItem Header="Stop Debugging" Name="StopDebugging" Click="StopDebugging_OnClick" IsEnabled="False"></MenuItem>
             </MenuItem>
         </Menu>
-        <StackPanel DockPanel.Dock="Bottom" Background="Aqua">
-            <TextBlock Name="Test" Width="400" Height="500"></TextBlock>
-        </StackPanel>
+        <Grid Name="MainPanel" DockPanel.Dock="Bottom" Background="Aqua">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.2*"></ColumnDefinition>
+                <ColumnDefinition Width="0.8*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TreeView Name="EventCategories" SelectedItemChanged="EventCategories_OnSelectedItemChanged" Grid.Column="0">
+                <TreeViewItem Header="Exceptions" Name="ExceptionsCategory"></TreeViewItem>
+                <TreeViewItem Header="Function">
+                    <TreeViewItem Header="Enter" Name="FunctionEnterCategory"></TreeViewItem>
+                    <TreeViewItem Header="Leave" Name="FunctionLeaveCategory"></TreeViewItem>
+                </TreeViewItem>
+                <TreeViewItem Header="Object allocations" Name="ObjectAllocationsCategory"></TreeViewItem>
+                <TreeViewItem Header="Stack">
+                    <TreeViewItem Header="Critical depth warning" Name="CriticalDepthCategory"></TreeViewItem>
+                    <TreeViewItem Header="Callstack" Name="CallstackCategory"></TreeViewItem>
+                </TreeViewItem>
+                <TreeViewItem Header="Application logging">
+                    <TreeViewItem Header="Profiler UI exceptions" Name="ProfilerUiExceptionLogging"></TreeViewItem>
+                    <TreeViewItem Header="Profiler">
+                        <TreeViewItem Header="Info" Name="ProfilerInfoLogging"></TreeViewItem>
+                        <TreeViewItem Header="Error" Name="ProfilerErrorLogging"></TreeViewItem>
+                    </TreeViewItem>
+                </TreeViewItem>
+            </TreeView>
+            <ContentControl Content="{Binding CurrentView}" Grid.Column="1">
+            </ContentControl>
+
+        </Grid>
     </DockPanel>
 
 </Window>

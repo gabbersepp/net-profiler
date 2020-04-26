@@ -11,11 +11,10 @@
 
 using namespace std;
 
-const wchar_t* LogFileName = L"Profiler.log";
 CComQIPtr<ICorProfilerInfo2> iCorProfilerInfo;
 CProfiler* iCorProfilerCallback = NULL;
 
-
+// map functionId to "hashmap"
 int const bucketSize = 5000;
 unsigned int* functionMap = new unsigned int[bucketSize];
 unsigned int* fnMapPtr = functionMap;
@@ -25,31 +24,29 @@ CProfiler::CProfiler()
 	hLogFile = INVALID_HANDLE_VALUE;
 	eventLogger = new EventLogger();
 	unsigned long error = 0;
-	ProfilerConfig* result = eventLogger->Initialize(&error);
+	profilerConfig = eventLogger->Initialize(&error);
 
 	if (error != 0) {
-		cout << "\r\nerror\r\n" << result;
+		throw new logic_error("error during initializing");
 	}
-	cout << "config: " << result->ProfilerOptions << ";" << result->ManagedThreadId << ";" << result->StackCriticalLevelThreshold << "\r\n";
+
 	memset(functionMap, 0, bucketSize);
 }
 
 HRESULT CProfiler::FinalConstruct()
 {
-	CreateLogFile();
 	return S_OK;
 }
 
 void CProfiler::FinalRelease()
 {
-
 	eventLogger->Finalize();
 	delete eventLogger;
-	CloseLogFile();
 }
 
 void __stdcall FunctionEnterGlobal(FunctionID functionID) {
-	iCorProfilerCallback->LogLine("\r\nentered\r\n");
+	iCorProfilerCallback->Log(EventType::Info, "Entered function");
+
 	mdToken mdToken = 0;
 	IMetaDataImport* metadata = 0;
 	HRESULT hr = iCorProfilerInfo->GetTokenAndMetaDataFromFunction(functionID, IID_IMetaDataImport, (LPUNKNOWN*)&metadata, &mdToken);
@@ -76,7 +73,7 @@ void __stdcall FunctionEnterGlobal(FunctionID functionID) {
 	char* cFuncName = new char[1000];
 	memset(cFuncName, 0, 1000);
 	wcstombs(cFuncName, functionName, 1000);
-	iCorProfilerCallback->Log("Function called: %s\r\n", cFuncName);
+	iCorProfilerCallback->Log(EventType::FunctionEnter, cFuncName);
 	metadata->Release();
 }
 
@@ -167,24 +164,30 @@ void __declspec(naked) FunctionEnterNaked(FunctionID funcId, UINT_PTR clientData
 HRESULT __stdcall CProfiler::Initialize(IUnknown *pICorProfilerInfoUnk)
 {
 	iCorProfilerCallback = this;
-	LogLine("Initializing...");
+	Log(EventType::Info, "Initializing profiler");
 
     HRESULT hr = pICorProfilerInfoUnk->QueryInterface(IID_ICorProfilerInfo2, (LPVOID*)&iCorProfilerInfo);
 	if (FAILED(hr)) {
-		LogLine("Could not find ICorProfilerInfo");
+		Log(EventType::Info, "Could not find ICorProfilerInfo");
 		return E_FAIL;
 	}
 
 	hr = SetEventMask();
 	if (FAILED(hr)) {
-		LogLine("Error setting event mask");
+		Log(EventType::Info, "Error setting event mask");
 	}
-
-	iCorProfilerInfo->SetEnterLeaveFunctionHooks2((FunctionEnter2*)&FunctionEnterNaked, (FunctionLeave2*)&FunctionLeaveNaked, (FunctionTailcall2*)&FunctionTailcallNaked);
-
+	
+	if (SetFunctionHooks()) {
+		iCorProfilerInfo->SetEnterLeaveFunctionHooks2((FunctionEnter2*)&FunctionEnterNaked, (FunctionLeave2*)&FunctionLeaveNaked, (FunctionTailcall2*)&FunctionTailcallNaked);
+	}
+	
     return S_OK;
 }
 
+bool CProfiler::SetFunctionHooks() {
+	unsigned int opts = profilerConfig->ProfilerOptions;
+	return opts && ProfilerOptions_FunctionEnter || opts && ProfilerOptions_FunctionLeave || opts && ProfilerOptions_StackCriticalLevel;
+}
 
 HRESULT __stdcall CProfiler::Shutdown()
 {
@@ -193,71 +196,47 @@ HRESULT __stdcall CProfiler::Shutdown()
     return S_OK;
 }
 
-void CProfiler::CreateLogFile()
-{
-	::DeleteFile(LogFileName);
-	hLogFile = CreateFile(LogFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-}
-
-void CProfiler::CloseLogFile()
-{
-	if (hLogFile != INVALID_HANDLE_VALUE)
-	{
-		CloseHandle(hLogFile);
-		hLogFile = INVALID_HANDLE_VALUE;
-	}
-}
-
-void CProfiler::LogLine(wchar_t* pMsg) {
-	Log(pMsg);
-	Log("\r\n");
-}
-
-void CProfiler::LogLine(char* pMsg) {
-	Log(pMsg);
-	Log("\r\n");
-}
-
-void CProfiler::Log(wchar_t* pMsg)
+void CProfiler::Log(EventType eventType, wchar_t* pMsg)
 {
 	size_t size = wcslen(pMsg) + 1;
 	size_t converted = 0;
 	char* dest = new char[size];
 	wcstombs_s(&converted, dest, size, pMsg, size);
 
-	Log(dest);
+	Log(eventType, dest);
 }
 
-void CProfiler::Log(char *pMsg, ...)
+void CProfiler::Log(EventType eventType, char *pMsg)
 {
-	char output[500];
-	memset(output, 0, 500);
-	cout << "log message";
-	cout << pMsg;
-	unsigned long read = 0;
-	long result = eventLogger->ProcessEvent(pMsg, strlen(pMsg), output, 500, &read);
-	if (result != TRUE) {
-		cout << "Error\r\n";
-		cout << result;
-	}
-	cout << read;
-	return;
-	CHAR buffer[4096]; DWORD dwWritten = 0;
+	/*
+	char buffer[5000];
+	memset(buffer, 0, 5000);
 
-	if(hLogFile != INVALID_HANDLE_VALUE)
-	{
-		va_list args;
-		va_start( args, pMsg);
-		vsprintf_s(buffer, 4096, pMsg, args);
-		va_end( args );
+	va_list args;
+	va_start(args, pMsg);
+	vsprintf_s(buffer, 5000, pMsg, args);
+	va_end(args);
+	*/
 
-		WriteFile(hLogFile, buffer, (DWORD)strlen(buffer), &dwWritten, NULL);
-	}
+	eventLogger->ProcessEvent(eventType, pMsg, strlen(pMsg));
 }
 
 HRESULT CProfiler::SetEventMask()
 {
-	DWORD eventMask = (DWORD)(COR_PRF_MONITOR_ENTERLEAVE | COR_PRF_MONITOR_OBJECT_ALLOCATED | COR_PRF_ENABLE_OBJECT_ALLOCATED | COR_PRF_ENABLE_STACK_SNAPSHOT | COR_PRF_MONITOR_EXCEPTIONS);
+	DWORD eventMask = 0;
+	if (SetFunctionHooks()) {
+		eventMask = eventMask | COR_PRF_MONITOR_ENTERLEAVE;
+	}
+
+	if (profilerConfig->ProfilerOptions && ProfilerOptions_Exceptions) {
+		eventMask = eventMask | COR_PRF_MONITOR_EXCEPTIONS;
+	}
+
+	if (profilerConfig->ProfilerOptions && ProfilerOptions_ObjectAllocated) {
+		eventMask = eventMask | COR_PRF_MONITOR_OBJECT_ALLOCATED | COR_PRF_ENABLE_OBJECT_ALLOCATED;
+	}
+
+	//DWORD eventMask = (DWORD)(| COR_PRF_ENABLE_STACK_SNAPSHOT);
 	return iCorProfilerInfo->SetEventMask(eventMask);
 }
 
@@ -291,10 +270,10 @@ HRESULT __stdcall CProfiler::ObjectAllocated(ObjectID objectID, ClassID classID)
 	
 	char* className2 = new char[wcslen(className) + 1];
 	wcstombs(className2, className, wcslen(className) + 1);
-	Log("Object allocated: %s\r\n", className2);
+	Log(EventType::ObjectAllocated, className2);
 
 	//if (wcscmp(className, L"ErrorThrowingApp.Test") == 0) {
-		GetStacktrace();
+	//	GetStacktrace();
 	//}
 
 	metadata->Release();
@@ -302,7 +281,7 @@ HRESULT __stdcall CProfiler::ObjectAllocated(ObjectID objectID, ClassID classID)
 }
 
 void CProfiler::GetStacktrace() {
-	LogLine("\r\nStacktrace:");
+	//LogLine("\r\nStacktrace:");
 
 	WOW64_CONTEXT context = { 0 };
 	context.ContextFlags = WOW64_CONTEXT_FULL;
@@ -311,19 +290,38 @@ void CProfiler::GetStacktrace() {
 	// https://docs.microsoft.com/de-de/dotnet/framework/unmanaged-api/profiling/icorprofilerinfo2-dostacksnapshot-method#synchronous-stack-walk
 	iCorProfilerInfo->DoStackSnapshot(NULL, &MyDoStackSnapshotCallback, COR_PRF_SNAPSHOT_REGISTER_CONTEXT, &functions, 0, 0);// (BYTE*)&context, sizeof(WOW64_CONTEXT));
 
-	LogLine("\r\n");
+	//LogLine("\r\n");
 }
 
 
 HRESULT __stdcall CProfiler::ExceptionThrown(ObjectID thrownObjectID)
 {
-	LogLine("exception was thrown\r\n");
+	COR_PRF_EX_CLAUSE_INFO* info;
+	/*HRESULT hr = iCorProfilerInfo->GetNotifiedExceptionClauseInfo(info);
+	if (FAILED(hr)) {
+		Log(EventType::Info, "failed to retrive exception info");
+		return E_FAIL;
+	}*/
+	ClassID classId;
+	iCorProfilerInfo->GetClassFromObject(thrownObjectID, &classId);
+	ModuleID moduleId;
+	mdTypeDef typeDefToken;
+	iCorProfilerInfo->GetClassIDInfo(classId, &moduleId, &typeDefToken);
+	IMetaDataImport* metadata;
+	iCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, (IUnknown**)&metadata);
+	wchar_t* className = new wchar_t[100];
+	ULONG read = 0;
+	metadata->GetTypeDefProps(typeDefToken, className, 100, &read, NULL, NULL);
 
+	metadata->Release();
+	//TODO: get exception name https://flylib.com/books/en/4.441.1.76/1/
+	Log(EventType::Exception, className);
+	delete[] className;
 	return S_OK;
 }
 
 HRESULT __stdcall CProfiler::ExceptionCatcherEnter(FunctionID functionID, ObjectID objectID) {
-	LogLine("yeah some nice guy catched that exception. Well done!");
+	Log(EventType::Exception, "Exception catched");
 
 	return S_OK;
 }
@@ -374,11 +372,11 @@ HRESULT __stdcall CProfiler::MyDoStackSnapshotCallback(
 
 	hr = metadata->GetTypeDefProps(typeDefToken, typeName, 1000, &outWideChar, NULL, NULL);
 
-	iCorProfilerCallback->Log(typeName);
+	/*iCorProfilerCallback->Log(typeName);
 	iCorProfilerCallback->Log(".");
 	iCorProfilerCallback->Log(functionName);
 	iCorProfilerCallback->Log("\r\n");
-
+	*/
 	metadata->Release();
 
 	return 0;

@@ -103,10 +103,15 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="EventViewModels\BaseViewModel.cs" />
     <Compile Include="Contracts\Config.cs" />
     <Compile Include="Contracts\DebugMode.cs" />
+    <Compile Include="Contracts\EventType.cs" />
     <Compile Include="Contracts\ProfilerConfig.cs" />
     <Compile Include="Contracts\ProfilerOptions.cs" />
+    <Compile Include="EventViewModels\ExceptionViewModel.cs" />
+    <Compile Include="EventViewModels\ObjectAllocatedViewModel.cs" />
+    <Compile Include="EventViewModels\ProfilerInfoViewModel.cs" />
     <Compile Include="FileMenu\AttachToProcess.xaml.cs">
       <DependentUpon>AttachToProcess.xaml</DependentUpon>
     </Compile>
@@ -116,6 +121,7 @@
     <Compile Include="FileMenu\StartNewProcess.xaml.cs">
       <DependentUpon>StartNewProcess.xaml</DependentUpon>
     </Compile>
+    <Compile Include="EventViewModels\FunctionEnterViewModel.cs" />
     <Compile Include="Logic\CommunicationService.cs" />
     <Compile Include="Logic\ConfigurationManager.cs" />
     <Compile Include="Logic\IMessageReceiver.cs" />
